@@ -6,7 +6,6 @@ class EmployeeBase(BaseModel):
     email: EmailStr
     department: str = Field(..., min_length=1, max_length=100)
     salary: float = Field(..., gt=0)
-    location: str = Field(..., min_length=1, max_length=100)
 
 
 class Employee(EmployeeBase):

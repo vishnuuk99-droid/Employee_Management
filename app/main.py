@@ -1,3 +1,4 @@
+
 from typing import Dict
 
 from fastapi import FastAPI, HTTPException, Response, status
@@ -10,6 +11,17 @@ app = FastAPI(
     version="1.0.0",
 )
 
+
+# Root endpoint
+@app.get("/")
+def root() -> dict[str, str]:
+    """Welcome message for the API home page."""
+    return {
+        "message": "Welcome to the Employee Management API. Use /employees to view employees."
+    }
+
+
+# Sample employee data
 employees: Dict[int, Employee] = {
     1: Employee(
         id=1,
@@ -28,36 +40,60 @@ employees: Dict[int, Employee] = {
 }
 
 
+# Get all employees
 @app.get("/employees", response_model=list[Employee])
 def get_employees() -> list[Employee]:
     """Get all employees."""
     return list(employees.values())
 
 
+# Search employees by name
+@app.get("/employees/search", response_model=list[Employee])
+def search_employees(name: str) -> list[Employee]:
+    """Search employees by name."""
+    return [
+        employee
+        for employee in employees.values()
+        if name.lower() in employee.name.lower()
+    ]
+
+
+# Get employee by ID
 @app.get("/employees/{employee_id}", response_model=Employee)
 def get_employee(employee_id: int) -> Employee:
     """Get one employee by ID."""
     employee = employees.get(employee_id)
+
     if employee is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Employee with id {employee_id} was not found.",
         )
+
     return employee
 
 
-@app.post("/employees", response_model=Employee, status_code=status.HTTP_201_CREATED)
+# Create a new employee
+@app.post(
+    "/employees",
+    response_model=Employee,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_employee(employee: EmployeeCreate) -> Employee:
     """Create a new employee."""
     new_id = max(employees.keys(), default=0) + 1
     new_employee = Employee(id=new_id, **employee.model_dump())
+
     employees[new_id] = new_employee
+
     return new_employee
 
 
+# Update employee details
 @app.put("/employees/{employee_id}", response_model=Employee)
 def update_employee(employee_id: int, employee: EmployeeCreate) -> Employee:
     """Update employee details by ID."""
+
     if employee_id not in employees:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -66,12 +102,18 @@ def update_employee(employee_id: int, employee: EmployeeCreate) -> Employee:
 
     updated_employee = Employee(id=employee_id, **employee.model_dump())
     employees[employee_id] = updated_employee
+
     return updated_employee
 
 
-@app.delete("/employees/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
+# Delete an employee
+@app.delete(
+    "/employees/{employee_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_employee(employee_id: int) -> Response:
     """Delete an employee by ID."""
+
     if employee_id not in employees:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -79,10 +121,16 @@ def delete_employee(employee_id: int) -> Response:
         )
 
     del employees[employee_id]
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(
+        "app.main:app",
+        host="127.0.0.1",
+        port=8000,
+        reload=True,
+    )
